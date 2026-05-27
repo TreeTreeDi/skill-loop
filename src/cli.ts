@@ -78,21 +78,25 @@ program
   .description('Synchronize hub state with all tools')
   .option('-p, --hub-path <path>', 'Hub directory path', '~/skills-hub')
   .option('-f, --fix', 'Fix broken symlinks')
+  .option('--prune', 'Prune local skills that are not in the hub')
   .action(async (options) => {
-    await syncCommand({ hubPath: expandPath(options.hubPath, os.homedir()), fix: options.fix });
+    await syncCommand({
+      hubPath: expandPath(options.hubPath, os.homedir()),
+      fix: options.fix,
+      prune: options.prune,
+    });
   });
 
 program
-  .command('onboard <tool> [skill]')
-  .description('Adopt skills from a tool directory into hub')
+  .command('onboard [tool] [skill]')
+  .description('Adopt skills from a tool directory into hub as global skills')
   .option('-p, --hub-path <path>', 'Hub directory path', '~/skills-hub')
-  .option('--global', 'Adopt as global skill')
   .action(async (toolName, skillName, options) => {
     await onboardCommand({
       hubPath: expandPath(options.hubPath, os.homedir()),
       toolName,
       skillName,
-      scope: options.global ? 'global' : 'tool-specific',
+      scope: 'global',
     });
   });
 

@@ -38,31 +38,18 @@ export function loadConfig(configPath: string): HubConfig {
       defaultMode: parsed.sync?.defaultMode ?? defaults.sync.defaultMode,
       prune: parsed.sync?.prune ?? defaults.sync.prune,
     },
-    tools: defaults.tools.map((defaultTool) => {
-      const override = parsed.tools?.find((t) => t.name === defaultTool.name);
-      return override
-        ? {
-            name: defaultTool.name,
-            skillsDir: override.skillsDir ?? defaultTool.skillsDir,
-            enabled: override.enabled ?? defaultTool.enabled,
-            mode: override.mode ?? defaultTool.mode,
-          }
-        : defaultTool;
-    }),
+    tools: parsed.tools && parsed.tools.length > 0
+      ? parsed.tools.map((tool) => {
+          const defaultTool = defaults.tools.find((t) => t.name === tool.name);
+          return {
+            name: tool.name!,
+            skillsDir: tool.skillsDir ?? defaultTool?.skillsDir ?? '~/.unknown/skills',
+            enabled: tool.enabled ?? defaultTool?.enabled ?? true,
+            mode: tool.mode ?? defaultTool?.mode ?? defaults.sync.defaultMode,
+          };
+        })
+      : defaults.tools,
   };
-
-  // Append any new tools defined in config but not in defaults
-  const knownNames = new Set(defaults.tools.map((t) => t.name));
-  for (const tool of parsed.tools ?? []) {
-    if (tool.name && !knownNames.has(tool.name)) {
-      merged.tools.push({
-        name: tool.name,
-        skillsDir: tool.skillsDir ?? '~/.unknown/skills',
-        enabled: tool.enabled ?? true,
-        mode: tool.mode ?? defaults.sync.defaultMode,
-      });
-    }
-  }
 
   return merged;
 }
