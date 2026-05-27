@@ -78,6 +78,29 @@ describe('init command', () => {
     expect(fs.existsSync(path.join(hubPath, 'tools', 'claude', 'graphify'))).toBe(false);
   });
 
+  it('skips hidden directories like .archive and broken symlinks inside them', async () => {
+    // Create a valid global skill
+    fs.mkdirSync(path.join(tmpDir, '.claude', 'skills', 'check'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.claude', 'skills', 'check', 'SKILL.md'), 'check-content');
+    fs.mkdirSync(path.join(tmpDir, '.codex', 'skills', 'check'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.codex', 'skills', 'check', 'SKILL.md'), 'check-content');
+
+    // Create a hidden .archive dir with a broken symlink inside
+    fs.mkdirSync(path.join(tmpDir, '.claude', 'skills', '.archive'), { recursive: true });
+    fs.symlinkSync('/nonexistent/path', path.join(tmpDir, '.claude', 'skills', '.archive', 'kami-duplicate'));
+
+    const hubPath = path.join(tmpDir, 'skills-hub');
+
+    // Should not throw ENOENT from inside .archive
+    await initCommand({ hubPath, yes: true, homeDir: tmpDir });
+
+    // Valid skill should still be imported
+    expect(fs.existsSync(path.join(hubPath, 'skills', 'check', 'SKILL.md'))).toBe(true);
+    // .archive should be ignored entirely
+    expect(fs.existsSync(path.join(hubPath, 'skills', '.archive'))).toBe(false);
+    expect(fs.existsSync(path.join(hubPath, 'tools', 'claude', '.archive'))).toBe(false);
+  });
+
   it('throws when hub already exists', async () => {
     const hubPath = path.join(tmpDir, 'skills-hub');
     fs.mkdirSync(hubPath, { recursive: true });

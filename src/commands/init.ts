@@ -55,6 +55,8 @@ export async function initCommand(options: InitOptions = {}): Promise<void> {
 
     const entries = fs.readdirSync(toolPath, { withFileTypes: true })
       .filter((e) => {
+        // Skip hidden directories (e.g. .archive, .git)
+        if (e.name.startsWith('.')) return false;
         if (e.isDirectory()) return true;
         if (e.isSymbolicLink()) {
           // Skip broken symlinks — they are not valid skills
@@ -180,8 +182,24 @@ function copySkill(src: string, dst: string): void {
   fs.mkdirSync(dst, { recursive: true });
 
   function copyRecursive(source: string, dest: string): void {
-    const stat = fs.statSync(source);
-    if (stat.isDirectory()) {
+    let lstat: fs.Stats;
+    try {
+      lstat = fs.lstatSync(source);
+    } catch {
+      return; // Broken symlink or missing path, skip silently
+    }
+
+    if (lstat.isSymbolicLink()) {
+      // Copy the target file content (skip if target is missing)
+      try {
+        fs.copyFileSync(source, dest);
+      } catch {
+        // Broken symlink target, skip
+      }
+      return;
+    }
+
+    if (lstat.isDirectory()) {
       if (!fs.existsSync(dest)) {
         fs.mkdirSync(dest, { recursive: true });
       }

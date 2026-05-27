@@ -65,6 +65,7 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     if (config.sync.prune && fs.existsSync(toolSkillsDir)) {
       const toolEntries = fs.readdirSync(toolSkillsDir, { withFileTypes: true })
         .filter((e) => {
+          if (e.name.startsWith('.')) return false;
           if (e.isDirectory()) return true;
           if (e.isSymbolicLink()) {
             return fs.existsSync(path.join(toolSkillsDir, e.name));
