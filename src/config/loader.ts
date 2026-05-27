@@ -11,9 +11,9 @@ import { parse, stringify } from 'smol-toml';
 import type { HubConfig, Tool } from '../types.js';
 import { getDefaultConfig } from './schema.js';
 
-export function expandPath(p: string): string {
+export function expandPath(p: string, homeDir?: string): string {
   if (p.startsWith('~/')) {
-    return path.join(os.homedir(), p.slice(2));
+    return path.join(homeDir ?? os.homedir(), p.slice(2));
   }
   return p;
 }
