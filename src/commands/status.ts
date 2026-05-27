@@ -21,7 +21,7 @@ export async function statusCommand(options: StatusOptions): Promise<void> {
 
   const skillsDir = path.join(hubPath, 'skills');
   const globalSkills = fs.existsSync(skillsDir)
-    ? fs.readdirSync(skillsDir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name)
+    ? fs.readdirSync(skillsDir, { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith('.')).map((e) => e.name)
     : [];
 
   // Build map of resolved tool directories

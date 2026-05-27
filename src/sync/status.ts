@@ -16,7 +16,7 @@ export function checkSkillStatus(skillName: string, toolSkillsDir: string, hubPa
   if (!hubSkillNames.includes(skillName)) {
     // Check if it's a tool-specific skill
     const toolSpecificPath = path.join(hubPath, 'tools');
-    const tools = fs.existsSync(toolSpecificPath) ? fs.readdirSync(toolSpecificPath, { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name) : [];
+    const tools = fs.existsSync(toolSpecificPath) ? fs.readdirSync(toolSpecificPath, { withFileTypes: true }).filter(d => d.isDirectory() && !d.name.startsWith('.')).map(d => d.name) : [];
 
     for (const toolName of tools) {
       const specificSkillPath = path.join(toolSpecificPath, toolName, skillName);
@@ -108,7 +108,7 @@ export function checkToolStatus(tool: Tool, hubPath: string, hubSkillNames: stri
   const toolSpecificDir = path.join(hubPath, 'tools', tool.name);
   if (fs.existsSync(toolSpecificDir)) {
     const toolSpecificSkills = fs.readdirSync(toolSpecificDir, { withFileTypes: true })
-      .filter(d => d.isDirectory())
+      .filter(d => d.isDirectory() && !d.name.startsWith('.'))
       .map(d => d.name);
 
     for (const skillName of toolSpecificSkills) {
@@ -128,14 +128,14 @@ export function checkToolStatus(tool: Tool, hubPath: string, hubSkillNames: stri
   // Check for extra skills in tool directory not in hub
   if (fs.existsSync(resolvedToolDir)) {
     const toolSkills = fs.readdirSync(resolvedToolDir, { withFileTypes: true })
-      .filter(d => d.isDirectory() || d.isSymbolicLink())
+      .filter(d => (d.isDirectory() || d.isSymbolicLink()) && !d.name.startsWith('.'))
       .map(d => d.name);
 
     const allHubSkills = new Set([...hubSkillNames]);
     const toolSpecificDir2 = path.join(hubPath, 'tools', tool.name);
     if (fs.existsSync(toolSpecificDir2)) {
       const specificSkills = fs.readdirSync(toolSpecificDir2, { withFileTypes: true })
-        .filter(d => d.isDirectory())
+        .filter(d => d.isDirectory() && !d.name.startsWith('.'))
         .map(d => d.name);
       for (const s of specificSkills) allHubSkills.add(s);
     }

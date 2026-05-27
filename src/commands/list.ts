@@ -79,7 +79,7 @@ function collectGroups(hubPath: string, homeDir: string): SkillGroup[] {
   const hubSkillsDir = path.join(hubPath, 'skills');
   if (fs.existsSync(hubSkillsDir)) {
     const entries = fs.readdirSync(hubSkillsDir, { withFileTypes: true })
-      .filter((e) => e.isDirectory())
+      .filter((e) => e.isDirectory() && !e.name.startsWith('.'))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     if (entries.length > 0) {

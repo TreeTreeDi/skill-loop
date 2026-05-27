@@ -21,7 +21,7 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
 
   const skillsDir = path.join(hubPath, 'skills');
   const globalSkills = fs.existsSync(skillsDir)
-    ? fs.readdirSync(skillsDir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name)
+    ? fs.readdirSync(skillsDir, { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith('.')).map((e) => e.name)
     : [];
 
   let fixed = 0;
@@ -79,7 +79,7 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
       const toolSpecificDir = path.join(hubPath, 'tools', tool.name);
       if (fs.existsSync(toolSpecificDir)) {
         const specificSkills = fs.readdirSync(toolSpecificDir, { withFileTypes: true })
-          .filter((e) => e.isDirectory())
+          .filter((e) => e.isDirectory() && !e.name.startsWith('.'))
           .map((e) => e.name);
         for (const s of specificSkills) allHubSkills.add(s);
       }
