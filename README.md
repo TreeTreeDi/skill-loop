@@ -242,6 +242,10 @@ skill-loop status
 
 # 4. 同步分发到所有工具
 skill-loop sync
+
+# 5. 把 claude 中的所有 skills 同步到 hub 并且同步给所有的 agent
+skill-loop onboard claude
+
 ```
 
 ### 常用命令
