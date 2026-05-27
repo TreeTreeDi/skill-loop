@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "skill-loop": "./dist/cli.js"
+    "skill-loop": "dist/cli.js"
   },
   "files": [
     "dist"
