@@ -10,7 +10,19 @@ export function createSymlink(linkPath: string, targetPath: string): void {
   if (!fs.existsSync(parent)) {
     fs.mkdirSync(parent, { recursive: true });
   }
+  // Remove existing file/directory/symlink at linkPath
+  if (fs.existsSync(linkPath) || isBrokenSymlink(linkPath)) {
+    fs.rmSync(linkPath, { recursive: true, force: true });
+  }
   fs.symlinkSync(targetPath, linkPath, 'dir');
+}
+
+function isBrokenSymlink(linkPath: string): boolean {
+  try {
+    return fs.lstatSync(linkPath).isSymbolicLink();
+  } catch {
+    return false;
+  }
 }
 
 export function removeSymlink(linkPath: string): void {
@@ -27,6 +39,11 @@ export function createCopy(destPath: string, sourcePath: string): void {
   const parent = path.dirname(destPath);
   if (!fs.existsSync(parent)) {
     fs.mkdirSync(parent, { recursive: true });
+  }
+
+  // Remove existing destination
+  if (fs.existsSync(destPath) || isBrokenSymlink(destPath)) {
+    fs.rmSync(destPath, { recursive: true, force: true });
   }
 
   function copyRecursive(src: string, dst: string): void {

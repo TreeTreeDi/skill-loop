@@ -76,7 +76,8 @@ function checkSingleSkillStatus(skillName: string, toolSkillPath: string, hubSki
   return { skill, status: 'copy', toolPath: toolSkillPath, targetPath: hubSkillPath || '' };
 }
 
-export function checkToolStatus(tool: Tool, hubPath: string, hubSkillNames: string[]): ToolSyncReport {
+export function checkToolStatus(tool: Tool, hubPath: string, hubSkillNames: string[], toolSkillsDir?: string): ToolSyncReport {
+  const resolvedToolDir = toolSkillsDir ?? tool.skillsDir;
   const skills: SkillSyncState[] = [];
   let healthyCount = 0;
   let brokenCount = 0;
@@ -84,7 +85,7 @@ export function checkToolStatus(tool: Tool, hubPath: string, hubSkillNames: stri
   let missingCount = 0;
 
   for (const skillName of hubSkillNames) {
-    const state = checkSkillStatus(skillName, tool.skillsDir, hubPath, hubSkillNames);
+    const state = checkSkillStatus(skillName, resolvedToolDir, hubPath, hubSkillNames);
     skills.push(state);
 
     switch (state.status) {
@@ -112,7 +113,7 @@ export function checkToolStatus(tool: Tool, hubPath: string, hubSkillNames: stri
 
     for (const skillName of toolSpecificSkills) {
       if (!hubSkillNames.includes(skillName)) {
-        const state = checkSkillStatus(skillName, tool.skillsDir, hubPath, [...hubSkillNames, skillName]);
+        const state = checkSkillStatus(skillName, resolvedToolDir, hubPath, [...hubSkillNames, skillName]);
         skills.push(state);
         switch (state.status) {
           case 'healthy': healthyCount++; break;
@@ -125,8 +126,8 @@ export function checkToolStatus(tool: Tool, hubPath: string, hubSkillNames: stri
   }
 
   // Check for extra skills in tool directory not in hub
-  if (fs.existsSync(tool.skillsDir)) {
-    const toolSkills = fs.readdirSync(tool.skillsDir, { withFileTypes: true })
+  if (fs.existsSync(resolvedToolDir)) {
+    const toolSkills = fs.readdirSync(resolvedToolDir, { withFileTypes: true })
       .filter(d => d.isDirectory() || d.isSymbolicLink())
       .map(d => d.name);
 
@@ -141,7 +142,7 @@ export function checkToolStatus(tool: Tool, hubPath: string, hubSkillNames: stri
 
     for (const skillName of toolSkills) {
       if (!allHubSkills.has(skillName)) {
-        const state = checkSingleSkillStatus(skillName, path.join(tool.skillsDir, skillName), undefined);
+        const state = checkSingleSkillStatus(skillName, path.join(resolvedToolDir, skillName), undefined);
         skills.push(state);
         switch (state.status) {
           case 'healthy': healthyCount++; break;
@@ -163,7 +164,7 @@ export function checkToolStatus(tool: Tool, hubPath: string, hubSkillNames: stri
   };
 }
 
-export function generateReport(hubPath: string, tools: Tool[], globalSkills: string[]): SyncStatusReport {
+export function generateReport(hubPath: string, tools: Tool[], globalSkills: string[], toolDirs?: Map<string, string>): SyncStatusReport {
   const reports: ToolSyncReport[] = [];
   let totalSkills = 0;
   let totalHealthy = 0;
@@ -174,7 +175,8 @@ export function generateReport(hubPath: string, tools: Tool[], globalSkills: str
   for (const tool of tools) {
     if (!tool.enabled) continue;
 
-    const report = checkToolStatus(tool, hubPath, globalSkills);
+    const toolSkillsDir = toolDirs?.get(tool.name);
+    const report = checkToolStatus(tool, hubPath, globalSkills, toolSkillsDir);
     reports.push(report);
 
     totalSkills += report.skills.length;
