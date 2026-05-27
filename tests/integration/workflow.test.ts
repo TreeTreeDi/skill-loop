@@ -51,7 +51,7 @@ describe('end-to-end workflow', () => {
     await statusCommand({ hubPath, homeDir: tmpDir });
 
     // 4. List (smoke test - should not throw)
-    await listCommand({ hubPath });
+    await listCommand({ hubPath, yes: true });
 
     // 5. Create a broken symlink scenario and fix with sync
     fs.unlinkSync(path.join(tmpDir, '.claude', 'skills', 'check'));

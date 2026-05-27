@@ -40,8 +40,9 @@ program
   .command('list')
   .description('List all skills in hub')
   .option('-p, --hub-path <path>', 'Hub directory path', '~/skills-hub')
+  .option('-y, --yes', 'Skip interactive prompts')
   .action(async (options) => {
-    await listCommand({ hubPath: expandPath(options.hubPath, os.homedir()) });
+    await listCommand({ hubPath: expandPath(options.hubPath, os.homedir()), yes: options.yes });
   });
 
 program
