@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
- * skills-sync CLI entry point
+ * skill-loop CLI entry point
  */
 
 import { Command } from 'commander';
 import * as path from 'node:path';
 import * as os from 'node:os';
+import { expandPath } from './config/loader.js';
 import { initCommand } from './commands/init.js';
 import { listCommand } from './commands/list.js';
 import { statusCommand } from './commands/status.js';
@@ -17,8 +18,8 @@ import { removeCommand } from './commands/remove.js';
 const program = new Command();
 
 program
-  .name('skills-sync')
-  .description('Sync AI agent skills across multiple tools')
+  .name('skill-loop')
+  .description('Loop AI agent skills across multiple tools')
   .version('0.0.1');
 
 program
@@ -29,7 +30,7 @@ program
   .option('-a, --append', 'Append to existing hub')
   .action(async (options) => {
     await initCommand({
-      hubPath: options.hubPath,
+      hubPath: expandPath(options.hubPath, os.homedir()),
       yes: options.yes,
       append: options.append,
     });
@@ -40,7 +41,7 @@ program
   .description('List all skills in hub')
   .option('-p, --hub-path <path>', 'Hub directory path', '~/skills-hub')
   .action(async (options) => {
-    await listCommand({ hubPath: options.hubPath });
+    await listCommand({ hubPath: expandPath(options.hubPath, os.homedir()) });
   });
 
 program
@@ -48,7 +49,7 @@ program
   .description('Show sync status across all tools')
   .option('-p, --hub-path <path>', 'Hub directory path', '~/skills-hub')
   .action(async (options) => {
-    await statusCommand({ hubPath: options.hubPath });
+    await statusCommand({ hubPath: expandPath(options.hubPath, os.homedir()) });
   });
 
 program
@@ -64,7 +65,7 @@ program
         : options.scope.split(',').map((s: string) => s.trim())
       : undefined;
     await addCommand({
-      hubPath: options.hubPath,
+      hubPath: expandPath(options.hubPath, os.homedir()),
       skillPath,
       scope,
       mode: options.mode,
@@ -77,7 +78,7 @@ program
   .option('-p, --hub-path <path>', 'Hub directory path', '~/skills-hub')
   .option('-f, --fix', 'Fix broken symlinks')
   .action(async (options) => {
-    await syncCommand({ hubPath: options.hubPath, fix: options.fix });
+    await syncCommand({ hubPath: expandPath(options.hubPath, os.homedir()), fix: options.fix });
   });
 
 program
@@ -87,7 +88,7 @@ program
   .option('--global', 'Adopt as global skill')
   .action(async (toolName, skillName, options) => {
     await onboardCommand({
-      hubPath: options.hubPath,
+      hubPath: expandPath(options.hubPath, os.homedir()),
       toolName,
       skillName,
       scope: options.global ? 'global' : 'tool-specific',
@@ -99,7 +100,7 @@ program
   .description('Remove a skill from hub and all tools')
   .option('-p, --hub-path <path>', 'Hub directory path', '~/skills-hub')
   .action(async (skillName, options) => {
-    await removeCommand({ hubPath: options.hubPath, skillName });
+    await removeCommand({ hubPath: expandPath(options.hubPath, os.homedir()), skillName });
   });
 
 // Global error handling

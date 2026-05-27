@@ -4,6 +4,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as os from 'node:os';
 import { loadConfig, expandPath } from '../config/loader.js';
 import { generateReport } from '../sync/status.js';
 
@@ -61,6 +62,6 @@ export async function statusCommand(options: StatusOptions): Promise<void> {
 
   if (hasIssues) {
     console.log('');
-    console.log('Run `skills-sync sync` to fix issues.');
+    console.log('Run `skill-loop sync` to fix issues.');
   }
 }

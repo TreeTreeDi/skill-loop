@@ -4,6 +4,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as os from 'node:os';
 import { loadConfig, expandPath } from '../config/loader.js';
 import { createSymlink, createCopy, isSymlinkBroken } from '../sync/operations.js';
 import { checkToolStatus } from '../sync/status.js';
