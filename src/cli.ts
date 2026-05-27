@@ -26,7 +26,7 @@ program
   .command('init')
   .description('Initialize skills hub')
   .option('-p, --hub-path <path>', 'Hub directory path', '~/skills-hub')
-  .option('-y, --yes', 'Skip confirmation prompts')
+  .option('-y, --yes', 'Skip interactive prompts and import all')
   .option('-a, --append', 'Append to existing hub')
   .action(async (options) => {
     await initCommand({

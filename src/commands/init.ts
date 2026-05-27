@@ -6,6 +6,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { execSync } from 'node:child_process';
+import inquirer from 'inquirer';
 import { loadConfig, saveConfig, expandPath } from '../config/loader.js';
 import { getDefaultConfig } from '../config/schema.js';
 import { discoverTools } from '../discovery.js';
@@ -84,6 +85,66 @@ export async function initCommand(options: InitOptions = {}): Promise<void> {
           toolSpecificSkills.set(tool.name, new Map());
         }
         toolSpecificSkills.get(tool.name)!.set(skillName, path.join(toolPath, skillName));
+      }
+    }
+  }
+
+  // Interactive selection (default unless --yes)
+  if (!options.yes) {
+    if (globalSkills.size > 0) {
+      const globalChoices = Array.from(globalSkills.entries()).map(([name, sourcePath]) => {
+        const toolName = discovered.find((t) => sourcePath.startsWith(expandPath(t.skillsDir, homeDir)))?.name ?? 'unknown';
+        return { name: `${name}  (${toolName})`, value: name, checked: true };
+      });
+
+      const { selectedGlobals } = await inquirer.prompt([
+        {
+          type: 'checkbox',
+          name: 'selectedGlobals',
+          message: `Select global skills (${globalSkills.size} found, synced to all tools):`,
+          choices: globalChoices,
+        },
+      ]);
+
+      for (const name of globalSkills.keys()) {
+        if (!selectedGlobals.includes(name)) {
+          globalSkills.delete(name);
+        }
+      }
+    }
+
+    if (toolSpecificSkills.size > 0) {
+      const toolChoices: inquirer.ChoiceOptions[] = [];
+      for (const [toolName, skills] of toolSpecificSkills) {
+        for (const [skillName] of skills) {
+          toolChoices.push({
+            name: `${toolName}/${skillName}`,
+            value: `${toolName}:${skillName}`,
+            checked: true,
+          });
+        }
+      }
+
+      if (toolChoices.length > 0) {
+        const { selectedTools } = await inquirer.prompt([
+          {
+            type: 'checkbox',
+            name: 'selectedTools',
+            message: `Select tool-specific skills (${toolChoices.length} found):`,
+            choices: toolChoices,
+          },
+        ]);
+
+        for (const [toolName, skills] of toolSpecificSkills) {
+          for (const skillName of skills.keys()) {
+            if (!selectedTools.includes(`${toolName}:${skillName}`)) {
+              skills.delete(skillName);
+            }
+          }
+          if (skills.size === 0) {
+            toolSpecificSkills.delete(toolName);
+          }
+        }
       }
     }
   }
