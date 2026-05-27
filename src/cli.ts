@@ -91,12 +91,14 @@ program
   .command('onboard [tool] [skill]')
   .description('Adopt skills from a tool directory into hub as global skills')
   .option('-p, --hub-path <path>', 'Hub directory path', '~/skills-hub')
+  .option('-y, --yes', 'Skip interactive prompts')
   .action(async (toolName, skillName, options) => {
     await onboardCommand({
       hubPath: expandPath(options.hubPath, os.homedir()),
       toolName,
       skillName,
       scope: 'global',
+      yes: options.yes,
     });
   });
 
