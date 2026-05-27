@@ -148,7 +148,7 @@ async function promptWithEsc<T>(questions: any[], escValue: any): Promise<T> {
   try {
     const result = await promptPromise;
     return result;
-  } catch (error: any) {
+  } catch {
     const firstQuestionName = questions[0].name;
     return { [firstQuestionName]: escValue } as any;
   } finally {

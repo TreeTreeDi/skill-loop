@@ -71,14 +71,13 @@ export function removeCopy(destPath: string): void {
 }
 
 export function isSymlinkBroken(linkPath: string): boolean {
-  let isLink = false;
   try {
-    isLink = fs.lstatSync(linkPath).isSymbolicLink();
+    if (!fs.lstatSync(linkPath).isSymbolicLink()) {
+      return false;
+    }
   } catch {
     return false;
   }
-
-  if (!isLink) return false;
 
   try {
     fs.statSync(linkPath);

@@ -6,7 +6,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { execSync } from 'node:child_process';
-import { loadConfig, saveConfig, expandPath } from '../config/loader.js';
+import { loadConfig, expandPath } from '../config/loader.js';
 import { createSymlink, createCopy } from '../sync/operations.js';
 import { readSkillMeta } from '../utils/skill-meta.js';
 

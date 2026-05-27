@@ -4,7 +4,6 @@
  */
 
 import { Command } from 'commander';
-import * as path from 'node:path';
 import * as os from 'node:os';
 import { expandPath } from './config/loader.js';
 import { initCommand } from './commands/init.js';

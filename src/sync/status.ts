@@ -4,9 +4,9 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { Tool, Skill, SkillStatus, ToolSyncReport, SyncStatusReport, SkillSyncState } from '../types.js';
-import { readSkill, computeSkillHash } from '../utils/skill-meta.js';
-import { isSymlinkBroken, readSymlinkTarget } from './operations.js';
+import type { Tool, Skill, ToolSyncReport, SyncStatusReport, SkillSyncState } from '../types.js';
+import { readSkill } from '../utils/skill-meta.js';
+import { isSymlinkBroken } from './operations.js';
 
 export function checkSkillStatus(skillName: string, toolSkillsDir: string, hubPath: string, hubSkillNames: string[]): SkillSyncState {
   const toolSkillPath = path.join(toolSkillsDir, skillName);

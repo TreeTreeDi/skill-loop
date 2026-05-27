@@ -19,7 +19,6 @@ function parseYamlFrontmatter(content: string): { frontmatter: Record<string, un
 
   const lines = match[1].split('\n');
   const frontmatter: Record<string, unknown> = {};
-  let currentKey = '';
   let indentStack: { key: string; indent: number }[] = [];
 
   for (const rawLine of lines) {
@@ -41,7 +40,6 @@ function parseYamlFrontmatter(content: string): { frontmatter: Record<string, un
       // Start of nested object
       if (indentStack.length === 0 || indent > indentStack[indentStack.length - 1].indent) {
         indentStack.push({ key, indent });
-        currentKey = key;
       }
       continue;
     }
