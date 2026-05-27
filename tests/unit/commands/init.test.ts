@@ -56,6 +56,28 @@ describe('init command', () => {
     expect(fs.lstatSync(path.join(tmpDir, '.gemini', 'skills', 'lark-approval')).isSymbolicLink()).toBe(true);
   });
 
+  it('skips broken symlinks instead of crashing', async () => {
+    // Create a global skill shared by two tools, plus a broken symlink
+    fs.mkdirSync(path.join(tmpDir, '.claude', 'skills', 'check'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.claude', 'skills', 'check', 'SKILL.md'), 'check-content');
+    fs.mkdirSync(path.join(tmpDir, '.codex', 'skills', 'check'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.codex', 'skills', 'check', 'SKILL.md'), 'check-content');
+
+    // Create a broken symlink pointing to a non-existent target
+    fs.symlinkSync('/nonexistent/path', path.join(tmpDir, '.claude', 'skills', 'graphify'));
+
+    const hubPath = path.join(tmpDir, 'skills-hub');
+
+    // Should not throw ENOENT
+    await initCommand({ hubPath, yes: true, homeDir: tmpDir });
+
+    // Valid global skill should still be imported
+    expect(fs.existsSync(path.join(hubPath, 'skills', 'check', 'SKILL.md'))).toBe(true);
+    // Broken symlink should be ignored (not in hub)
+    expect(fs.existsSync(path.join(hubPath, 'skills', 'graphify'))).toBe(false);
+    expect(fs.existsSync(path.join(hubPath, 'tools', 'claude', 'graphify'))).toBe(false);
+  });
+
   it('throws when hub already exists', async () => {
     const hubPath = path.join(tmpDir, 'skills-hub');
     fs.mkdirSync(hubPath, { recursive: true });

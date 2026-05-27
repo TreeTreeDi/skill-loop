@@ -54,7 +54,14 @@ export async function initCommand(options: InitOptions = {}): Promise<void> {
     if (!fs.existsSync(toolPath)) continue;
 
     const entries = fs.readdirSync(toolPath, { withFileTypes: true })
-      .filter((e) => e.isDirectory() || e.isSymbolicLink());
+      .filter((e) => {
+        if (e.isDirectory()) return true;
+        if (e.isSymbolicLink()) {
+          // Skip broken symlinks — they are not valid skills
+          return fs.existsSync(path.join(toolPath, e.name));
+        }
+        return false;
+      });
 
     for (const entry of entries) {
       const skillName = entry.name;

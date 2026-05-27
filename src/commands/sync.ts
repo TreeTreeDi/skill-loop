@@ -64,7 +64,13 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     // Handle prune: remove skills from tool that are not in hub
     if (config.sync.prune && fs.existsSync(toolSkillsDir)) {
       const toolEntries = fs.readdirSync(toolSkillsDir, { withFileTypes: true })
-        .filter((e) => e.isDirectory() || e.isSymbolicLink());
+        .filter((e) => {
+          if (e.isDirectory()) return true;
+          if (e.isSymbolicLink()) {
+            return fs.existsSync(path.join(toolSkillsDir, e.name));
+          }
+          return false;
+        });
 
       const allHubSkills = new Set(globalSkills);
       const toolSpecificDir = path.join(hubPath, 'tools', tool.name);
