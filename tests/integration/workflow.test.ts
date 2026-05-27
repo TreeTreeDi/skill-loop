@@ -36,7 +36,7 @@ describe('end-to-end workflow', () => {
     await initCommand({ hubPath, yes: true, homeDir: tmpDir });
     expect(fs.existsSync(path.join(hubPath, '.skills-sync.toml'))).toBe(true);
     expect(fs.existsSync(path.join(hubPath, 'skills', 'check'))).toBe(true);
-    expect(fs.existsSync(path.join(hubPath, 'tools', 'gemini', 'lark'))).toBe(true);
+    expect(fs.existsSync(path.join(hubPath, 'skills', 'lark'))).toBe(true);
 
     // 2. Add a new skill
     const newSkillDir = path.join(tmpDir, 'new-skill');

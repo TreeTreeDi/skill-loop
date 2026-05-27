@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { initCommand } from '../../../src/commands/init.js';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import inquirer from 'inquirer';
 
 describe('init command', () => {
   const tmpDir = path.join(os.tmpdir(), 'skills-sync-init-test-' + Date.now());
@@ -20,7 +21,7 @@ describe('init command', () => {
     await initCommand({ hubPath, yes: true, homeDir: tmpDir });
 
     expect(fs.existsSync(path.join(hubPath, 'skills'))).toBe(true);
-    expect(fs.existsSync(path.join(hubPath, 'tools'))).toBe(true);
+    expect(fs.existsSync(path.join(hubPath, 'tools'))).toBe(false);
     expect(fs.existsSync(path.join(hubPath, '.skills-sync.toml'))).toBe(true);
     expect(fs.existsSync(path.join(hubPath, '.git'))).toBe(true);
   });
@@ -42,7 +43,7 @@ describe('init command', () => {
     expect(fs.lstatSync(path.join(tmpDir, '.codex', 'skills', 'check')).isSymbolicLink()).toBe(true);
   });
 
-  it('imports tool-specific skills', async () => {
+  it('imports all found skills as global skills', async () => {
     // Create tool with unique skill
     fs.mkdirSync(path.join(tmpDir, '.gemini', 'skills', 'lark-approval'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, '.gemini', 'skills', 'lark-approval', 'SKILL.md'), 'lark-content');
@@ -50,8 +51,8 @@ describe('init command', () => {
     const hubPath = path.join(tmpDir, 'skills-hub');
     await initCommand({ hubPath, yes: true, homeDir: tmpDir });
 
-    // Should be in hub/tools/gemini/
-    expect(fs.existsSync(path.join(hubPath, 'tools', 'gemini', 'lark-approval', 'SKILL.md'))).toBe(true);
+    // Should be in hub/skills/
+    expect(fs.existsSync(path.join(hubPath, 'skills', 'lark-approval', 'SKILL.md'))).toBe(true);
     // And symlinked back
     expect(fs.lstatSync(path.join(tmpDir, '.gemini', 'skills', 'lark-approval')).isSymbolicLink()).toBe(true);
   });
@@ -75,7 +76,6 @@ describe('init command', () => {
     expect(fs.existsSync(path.join(hubPath, 'skills', 'check', 'SKILL.md'))).toBe(true);
     // Broken symlink should be ignored (not in hub)
     expect(fs.existsSync(path.join(hubPath, 'skills', 'graphify'))).toBe(false);
-    expect(fs.existsSync(path.join(hubPath, 'tools', 'claude', 'graphify'))).toBe(false);
   });
 
   it('skips hidden directories like .archive and broken symlinks inside them', async () => {
@@ -98,7 +98,33 @@ describe('init command', () => {
     expect(fs.existsSync(path.join(hubPath, 'skills', 'check', 'SKILL.md'))).toBe(true);
     // .archive should be ignored entirely
     expect(fs.existsSync(path.join(hubPath, 'skills', '.archive'))).toBe(false);
-    expect(fs.existsSync(path.join(hubPath, 'tools', 'claude', '.archive'))).toBe(false);
+  });
+
+  it('leaves unselected skills untouched in the agent directory', async () => {
+    // Create tools with skills
+    fs.mkdirSync(path.join(tmpDir, '.claude', 'skills', 'skill-a'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.claude', 'skills', 'skill-a', 'SKILL.md'), 'content-a');
+    fs.mkdirSync(path.join(tmpDir, '.claude', 'skills', 'skill-b'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.claude', 'skills', 'skill-b', 'SKILL.md'), 'content-b');
+
+    // Spy on inquirer.prompt and mock return value to only select 'skill-a'
+    const spy = vi.spyOn(inquirer, 'prompt').mockResolvedValue({
+      selected: ['skill-a'],
+    });
+
+    const hubPath = path.join(tmpDir, 'skills-hub');
+    await initCommand({ hubPath, yes: false, homeDir: tmpDir });
+
+    // skill-a should be in hub and symlinked
+    expect(fs.existsSync(path.join(hubPath, 'skills', 'skill-a', 'SKILL.md'))).toBe(true);
+    expect(fs.lstatSync(path.join(tmpDir, '.claude', 'skills', 'skill-a')).isSymbolicLink()).toBe(true);
+
+    // skill-b should NOT be in hub and should NOT be symlinked (remains a physical folder)
+    expect(fs.existsSync(path.join(hubPath, 'skills', 'skill-b'))).toBe(false);
+    expect(fs.lstatSync(path.join(tmpDir, '.claude', 'skills', 'skill-b')).isSymbolicLink()).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, '.claude', 'skills', 'skill-b', 'SKILL.md'))).toBe(true);
+
+    spy.mockRestore();
   });
 
   it('throws when hub already exists', async () => {

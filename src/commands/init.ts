@@ -32,7 +32,6 @@ export async function initCommand(options: InitOptions = {}): Promise<void> {
 
   // Create hub directory structure
   fs.mkdirSync(path.join(hubPath, 'skills'), { recursive: true });
-  fs.mkdirSync(path.join(hubPath, 'tools'), { recursive: true });
 
   // Discover existing tools
   const discovered = discoverTools(homeDir).filter((t) => t.exists);
@@ -46,9 +45,8 @@ export async function initCommand(options: InitOptions = {}): Promise<void> {
     config.hub.path = options.hubPath ?? config.hub.path;
   }
 
-  // Phase 1: Classify all skills as global or tool-specific
-  const globalSkills = new Map<string, string>(); // skillName -> firstToolPath
-  const toolSpecificSkills = new Map<string, Map<string, string>>(); // toolName -> skillName -> toolPath
+  // Phase 1: Discover all skills and treat them all as global skill candidates
+  const globalSkills = new Map<string, { sourcePath: string; toolNames: string[] }>();
 
   for (const tool of discovered) {
     const toolPath = expandPath(tool.skillsDir, homeDir);
@@ -68,92 +66,55 @@ export async function initCommand(options: InitOptions = {}): Promise<void> {
 
     for (const entry of entries) {
       const skillName = entry.name;
+      const fullPath = path.join(toolPath, skillName);
 
-      // Check if this skill exists in any other tool
-      const inOtherTool = discovered.some((t) => {
-        if (t.name === tool.name) return false;
-        const otherPath = expandPath(t.skillsDir, homeDir);
-        return fs.existsSync(path.join(otherPath, skillName));
-      });
-
-      if (inOtherTool) {
-        if (!globalSkills.has(skillName)) {
-          globalSkills.set(skillName, path.join(toolPath, skillName));
+      const existing = globalSkills.get(skillName);
+      if (existing) {
+        if (!existing.toolNames.includes(tool.name)) {
+          existing.toolNames.push(tool.name);
         }
       } else {
-        if (!toolSpecificSkills.has(tool.name)) {
-          toolSpecificSkills.set(tool.name, new Map());
-        }
-        toolSpecificSkills.get(tool.name)!.set(skillName, path.join(toolPath, skillName));
+        globalSkills.set(skillName, {
+          sourcePath: fullPath,
+          toolNames: [tool.name],
+        });
       }
     }
   }
 
   // Interactive selection (default unless --yes)
+  const selectedSkills = new Set<string>();
   if (!options.yes) {
     if (globalSkills.size > 0) {
-      const globalChoices = Array.from(globalSkills.entries()).map(([name, sourcePath]) => {
-        const toolName = discovered.find((t) => sourcePath.startsWith(expandPath(t.skillsDir, homeDir)))?.name ?? 'unknown';
-        return { name: `${name}  (${toolName})`, value: name, checked: true };
-      });
-
-      const { selectedGlobals } = await inquirer.prompt([
+      const { selected } = await inquirer.prompt([
         {
           type: 'checkbox',
-          name: 'selectedGlobals',
-          message: `Select global skills (${globalSkills.size} found, synced to all tools):`,
-          choices: globalChoices,
+          name: 'selected',
+          message: 'Select skills to import into Hub (these will be moved to Hub and symlinked back):',
+          choices: Array.from(globalSkills.entries()).map(([name, info]) => {
+            const toolsStr = info.toolNames.join(', ');
+            return { name: `${name}  (${toolsStr})`, value: name, checked: true };
+          }),
         },
       ]);
-
-      for (const name of globalSkills.keys()) {
-        if (!selectedGlobals.includes(name)) {
-          globalSkills.delete(name);
-        }
+      for (const name of selected) {
+        selectedSkills.add(name);
       }
     }
-
-    if (toolSpecificSkills.size > 0) {
-      const toolChoices: inquirer.ChoiceOptions[] = [];
-      for (const [toolName, skills] of toolSpecificSkills) {
-        for (const [skillName] of skills) {
-          toolChoices.push({
-            name: `${toolName}/${skillName}`,
-            value: `${toolName}:${skillName}`,
-            checked: true,
-          });
-        }
-      }
-
-      if (toolChoices.length > 0) {
-        const { selectedTools } = await inquirer.prompt([
-          {
-            type: 'checkbox',
-            name: 'selectedTools',
-            message: `Select tool-specific skills (${toolChoices.length} found):`,
-            choices: toolChoices,
-          },
-        ]);
-
-        for (const [toolName, skills] of toolSpecificSkills) {
-          for (const skillName of skills.keys()) {
-            if (!selectedTools.includes(`${toolName}:${skillName}`)) {
-              skills.delete(skillName);
-            }
-          }
-          if (skills.size === 0) {
-            toolSpecificSkills.delete(toolName);
-          }
-        }
-      }
+  } else {
+    for (const name of globalSkills.keys()) {
+      selectedSkills.add(name);
     }
   }
 
-  // Phase 2: Import global skills to hub and create symlinks for all tools
-  for (const [skillName, sourcePath] of globalSkills) {
+  // Phase 2: Import selected skills to hub and create symlinks for all tools
+  for (const skillName of selectedSkills) {
+    const info = globalSkills.get(skillName);
+    if (!info) continue;
+
     const hubSkillPath = path.join(hubPath, 'skills', skillName);
     if (!fs.existsSync(hubSkillPath)) {
-      copySkill(sourcePath, hubSkillPath);
+      copySkill(info.sourcePath, hubSkillPath);
     }
 
     // Create symlinks in all tools that have this skill
@@ -165,30 +126,6 @@ export async function initCommand(options: InitOptions = {}): Promise<void> {
         if (!stat.isSymbolicLink()) {
           fs.rmSync(toolSkillPath, { recursive: true });
           createSymlink(toolSkillPath, hubSkillPath);
-        }
-      }
-    }
-  }
-
-  // Phase 3: Import tool-specific skills to hub and create symlinks
-  for (const [toolName, skills] of toolSpecificSkills) {
-    for (const [skillName, sourcePath] of skills) {
-      const hubToolPath = path.join(hubPath, 'tools', toolName, skillName);
-      fs.mkdirSync(path.dirname(hubToolPath), { recursive: true });
-      if (!fs.existsSync(hubToolPath)) {
-        copySkill(sourcePath, hubToolPath);
-      }
-
-      const tool = discovered.find((t) => t.name === toolName);
-      if (tool) {
-        const toolPath = expandPath(tool.skillsDir, homeDir);
-        const toolSkillPath = path.join(toolPath, skillName);
-        if (fs.existsSync(toolSkillPath)) {
-          const stat = fs.lstatSync(toolSkillPath);
-          if (!stat.isSymbolicLink()) {
-            fs.rmSync(toolSkillPath, { recursive: true });
-            createSymlink(toolSkillPath, hubToolPath);
-          }
         }
       }
     }
@@ -230,12 +167,7 @@ export async function initCommand(options: InitOptions = {}): Promise<void> {
   }
 
   console.log(`✓ Skills hub initialized at ${hubPath}`);
-  console.log(`  Imported ${globalSkills.size} global skills`);
-  let toolSpecificCount = 0;
-  for (const [, skills] of toolSpecificSkills) {
-    toolSpecificCount += skills.size;
-  }
-  console.log(`  Imported ${toolSpecificCount} tool-specific skills`);
+  console.log(`  Imported ${selectedSkills.size} skills`);
   console.log(`  Registered ${discovered.length} tools`);
 }
 
