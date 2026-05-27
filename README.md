@@ -80,6 +80,9 @@ skill-loop status
 
 # 4. Sync all tools
 skill-loop sync
+
+# 5. add all skills in claude and sync to all agent
+skill-loop onboard claude
 ```
 
 ### Commands
