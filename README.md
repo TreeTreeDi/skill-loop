@@ -1,4 +1,4 @@
-# skills-sync
+# skill-loop
 
 Sync AI agent skills across multiple tools (Claude Code, Codex, Cursor, Gemini, and 30+ more).
 
@@ -15,7 +15,7 @@ When you create or update a skill, you have to manually copy it to every tool. T
 
 ## Solution
 
-**skills-sync** uses a hub-and-spoke model with **symlinks** as the default sync mechanism:
+**skill-loop** uses a hub-and-spoke model with **symlinks** as the default sync mechanism:
 
 ```
 ~/skills-hub/              ← Git repo, single source of truth
@@ -37,25 +37,25 @@ Edit once in the hub, changes instantly reflect in all tools.
 ## Installation
 
 ```bash
-npm install -g skills-sync
+npm install -g skill-loop
 # or
-pnpm add -g skills-sync
+pnpm add -g skill-loop
 ```
 
 ## Quick Start
 
 ```bash
 # 1. Initialize your skills hub
-skills-sync init
+skill-loop init
 
 # 2. Add a new skill
-skills-sync add ./my-skill
+skill-loop add ./my-skill
 
 # 3. Check sync status
-skills-sync status
+skill-loop status
 
 # 4. Sync all tools
-skills-sync sync
+skill-loop sync
 ```
 
 ## Commands
@@ -81,7 +81,7 @@ Claude Code, Codex, Cursor, Continue, Gemini, Windsurf, Trae, Kimi, Goose, Roo, 
 - **symlink** (default): Hub is the single file; tools reference it. Zero-delay sync.
 - **copy**: Independent copies per tool. Use for tools that don't support symlinks.
 
-Configure per tool in `.skills-sync.toml`:
+Configure per tool in `.skill-loop.toml`:
 
 ```toml
 [[tools]]
@@ -92,7 +92,7 @@ mode = "copy"  # cursor doesn't support symlinks
 
 ## Configuration
 
-`.skills-sync.toml` in your hub directory:
+`.skill-loop.toml` in your hub directory:
 
 ```toml
 version = "1"

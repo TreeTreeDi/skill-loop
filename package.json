@@ -1,11 +1,11 @@
 {
-  "name": "skills-sync",
+  "name": "skill-loop",
   "version": "0.0.1",
-  "description": "Sync AI agent skills across multiple tools",
+  "description": "Loop AI agent skills across multiple tools",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "skills-sync": "./dist/cli.js"
+    "skill-loop": "./dist/cli.js"
   },
   "files": [
     "dist"
